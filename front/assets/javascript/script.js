@@ -10,14 +10,14 @@ perguntarNome();
 function perguntarNome() {
   let nome = prompt("Digite seu lindo nome");
   if(nome === ""){
-    nome
+    nome = prompt("Digite seu lindo nome");
   }else{
     registrarParticipante(nome);
   }
  
 }
 
-function registrarParticipante() {
+function registrarParticipante(nome) {
   const dados = { name: nome };
   const requisicao = axios.post("http://localhost:5000/participants", dados);
   requisicao.then((response) => {
