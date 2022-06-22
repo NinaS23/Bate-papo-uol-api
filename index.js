@@ -49,9 +49,9 @@ app.post("/participants", async (req, res) => {
       if (user) {
         res.sendStatus(409);
         return;
-        
+
       } else {
-        await db .collection("participants") .insertOne({ name, lastStatus: Date.now() });
+        await db .collection("participants").insertOne({ name, lastStatus: Date.now() });
         db.collection("participants").find().toArray().then(users => {
             console.log(users); 
         });
@@ -75,15 +75,14 @@ app.post("/participants", async (req, res) => {
 
 app.get("/participants" , async (req,res)=>{
     try{
-        let participants = await mongoClient.db.collection("participants").find().toArray();
+        let participants = await db.collection("participants").find().toArray();
         console.log(participants)
         res.status(200).send(participants);
-    }catch(e){
-        res.status(404).send("desculpe, mas não conseguimos achar o participante");
-        mongoClient.close();
+    }catch (e){
+       console.log(e)
     }
 })
 
-app.listen(5000 , ()=>{
+app.listen(5900 , ()=>{
     console.log("wake")
 })
