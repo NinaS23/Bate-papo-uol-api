@@ -39,6 +39,7 @@ app.post("/participants", async (req, res) => {
     }
     try{
        const users = mongoClient.db("batepapo-uol").collection("users")
+       const messages = mongoClient.db.apply("batepapo-uol").collection("messages")
        const findUser = await users.findOne({name: user.name})
        console.log(findUser)
        if(findUser){
@@ -47,10 +48,19 @@ app.post("/participants", async (req, res) => {
        }
           console.log(mongoClient.db(users).find())
           await users.insertOne({name: [...user] , lastStatus: Date.now() })
-           
-        
-
-    }catch{}
+          const message =await messages.insertOne({
+              from: [...user.name],
+              to:"todos",
+              text:'entra na sala...',
+              type: 'status',
+              time: dayjs().format("HH:mm:ss")
+          }) 
+          console.log(message)
+          res.sendStatus(201)
+          mongoClient.close()
+    }catch (error){
+      mongoClient.close()
+    }
 
    
 
