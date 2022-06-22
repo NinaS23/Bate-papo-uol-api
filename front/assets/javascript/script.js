@@ -9,11 +9,13 @@ perguntarNome();
 
 function perguntarNome() {
   let nome = prompt("Digite seu lindo nome");
-  if(nome === ""){
-    nome = prompt("Digite seu lindo nome");
-  }else{
-    registrarParticipante(nome);
-  }
+if(nome === ""){
+  nome = prompt("Digite seu lindo nome");
+}else{
+  registrarParticipante(nome);
+}
+   
+  
  
 }
 
@@ -317,3 +319,4 @@ function excluirMensagem(id) {
     });
   }
 }
+
