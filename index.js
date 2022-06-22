@@ -16,7 +16,7 @@ const mongoClient = new MongoClient(process.env.BANCO_URL);
 const promise = mongoClient.connect();
 
 promise.then(() => {
-  db = mongoClient.db("api_bate_papo_uol");
+  db = mongoClient.db("bate_papo_uol");
   console.log("conectou ao banco do bate-papo-uol");
 })
 promise.catch(res => console.log(chalk.red("deu xabu"), res))
@@ -25,21 +25,35 @@ promise.catch(res => console.log(chalk.red("deu xabu"), res))
 
 const schema = joi.object({
     name: joi.string().min(1).required()
-  })
-  
+})
 
-app.post("/participants" , (req,res)=>{
-    const user= req.body
+
+app.post("/participants", async (req, res) => {
+    const user = req.body
     console.log(user)
+
+    const validateName = schema.validate(user)
+   
+    if (validateName.error) {
+        res.status(422)
+    }
     try{
-        const validateName =  schema.validate(user)
-        console.log(validateName)
-           if(validateName.error){
-                res.status(422)
-           }
-    }catch (err) { }
+       const users = mongoClient.db("batepapo-uol").collection("users")
+       const findUser = await users.findOne({name: user.name})
+       console.log(findUser)
+       if(findUser){
+           res.status(409)
+           return;
+       }
+          console.log(mongoClient.db(users).find())
+          await users.insertOne({name: [...user] , lastStatus: Date.now() })
+           
+        
+
+    }catch{}
 
    
+
 })
 
 
