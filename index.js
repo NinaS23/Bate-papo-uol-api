@@ -23,11 +23,6 @@ promise.then(() => {
 promise.catch(res => console.log(chalk.red("deu xabu"), res))
 
 
-
-const schemaNameValidate = joi.object({
-    name:joi.string().alphanum().required(),
-})
-
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
   
@@ -43,7 +38,11 @@ app.post("/participants", async (req, res) => {
     }
   
     try {
+
       const user = await db.collection("participants").findOne({ name });
+      db.collection("participants").find().toArray().then(users => {
+        console.log(users); 
+    });
       console.log(user)
   
       if (user) {
@@ -74,15 +73,18 @@ app.post("/participants", async (req, res) => {
   
 
 app.get("/participants" , async (req,res)=>{
-    try{
-        let participants = await db.collection("participants").find().toArray();
-        console.log(participants)
-        res.status(200).send(participants);
-    }catch (e){
-       console.log(e)
-    }
+
+  try{
+    const Allparticipant = db.collection("participants").find().toArray()
+    res.status(200).send(Allparticipant);
+    mongoClient.close();
+  } catch (error) {
+    res.send(404).send("desculpe, mas não conseguimos achar o participante");
+    mongoClient.close();
+  }
+  
 })
 
-app.listen(5900 , ()=>{
+app.listen(5000 , ()=>{
     console.log("wake")
 })
