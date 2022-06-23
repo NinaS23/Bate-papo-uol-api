@@ -23,6 +23,7 @@ promise.then(() => {
 promise.catch(res => console.log(chalk.red("deu xabu"), res))
 
 
+
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
   
@@ -84,6 +85,48 @@ app.get("/participants" , async (req,res)=>{
   }
   
 })
+app.post("messages" , async (req , res) =>{
+  const { to , text , type } = req.body
+  const participant = req.header.user;
+
+  const schemaMessage = joi.object({
+    to:joi.string().required(),
+    text:joi.string().required(),
+    type: joi.string().allow('message', 'private_message'),
+  })
+  
+    const validateMessage =  schemaMessage.validate({ to,type,text} , { abortEarly: false });
+    if(!validateMessage){
+      return res.send(422);
+    }else{
+      sendStatus(422).send("xabu", error)
+    }
+  
+    try{
+      const user = db.collection("participants").findOne({participant})
+      if (!user) {
+        res.sendStatus(422);
+        return;
+      } else {
+        await database.collection("messages").insertOne({
+          from: user.name,
+          to,
+          text,
+          type,
+          time: dayjs().format("HH:mm:ss"),
+        });
+        res.sendStatus(201);
+      }
+ 
+    }catch(e){
+      console.log(e)
+    }
+   
+  
+
+})
+
+
 
 app.listen(5000 , ()=>{
     console.log("wake")
