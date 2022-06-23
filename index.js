@@ -106,7 +106,7 @@ app.post("messages", async (req, res) => {
       res.sendStatus(422);
       return;
     } else {
-      await database.collection("messages").insertOne({
+      await db.collection("messages").insertOne({
         from: user.name,
         to,
         text,
