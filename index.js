@@ -5,9 +5,7 @@ import joi from "joi"
 import { MongoClient } from "mongodb";
 import dayjs from "dayjs";
 
-
-
-const dontev = dotenv.config();
+dotenv.config();
 const app = express()
 app.use(cors())
 app.use(json())
@@ -128,14 +126,14 @@ app.get("messages", async (req, res) => {
   const user = req.headers.user
   let arrAux = []
   try {
-    const messages = await database.collection("messages").find({}).toArray()
+    const messages = await db.collection("messages").find({}).toArray()
     for (let i = 0; i < messages.length; i++) {
       if (messages[i].to === user || messages[i].from === user) {
         arrAux.push(messages[i])
       }
     }
     if (!limit) {
-      res.send(arrAux)
+     return res.send(arrAux)
     } else {
       let reverseMessages = [...arrAux].reverse()
       let limitMessages = reverseMessages.splice(0, limit)
