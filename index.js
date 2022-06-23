@@ -128,8 +128,11 @@ app.get("messages", async (req, res) => {
   try {
     const messages = await db.collection("messages").find({}).toArray()
     for (let i = 0; i < messages.length; i++) {
-      if (messages[i].to === user || messages[i].from === user) {
-        arrAux.push(messages[i])
+      if (messages[i].type === "private_message" && (messages[i].to === user || messages[i].from === user)) {
+          arrAux.push(messages[i]);
+      }
+      if (messages[i].type === "message" || messages[i].type === "status") {
+          arrAux.push(messages[i]);
       }
     }
     if (!limit) {
