@@ -75,7 +75,6 @@ app.post("/participants", async (req, res) => {
 
 
 app.get("/participants", async (req, res) => {
-
   try {
     const allParticipant = db.collection("participants").find().toArray()
     res.status(200).send(allParticipant);
@@ -173,7 +172,7 @@ app.status("/status", async (req, res) => {
 
   async function VerifyLastStatus() {
     try {
-      const arrParticipants = await db.collection("participants").find({}).toArray()
+      const arrParticipants = await db.collection("participants").find().toArray()
       for (let i = 0; i < arrParticipants.length; i++) {
         if (arrParticipants[i].lastStatus > 10000) {
           await db.collection('participants').deleteOne({ _id: new ObjectId(participants[i]._id) });
