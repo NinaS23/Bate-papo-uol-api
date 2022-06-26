@@ -174,7 +174,7 @@ app.status("/status" , async (req,res)=>{
             await db.collection('participants').deleteOne({ _id: new ObjectId(participants[i]._id) });
             messagesArray.insertOne(
               {
-                from: participanteInativo.name,
+                from: arrParticipants[i].name,
                 to: 'Todos',
                 text: 'sai da sala...',
                 type: 'status',
