@@ -2,7 +2,7 @@ import express , {json} from "express";
 import cors from "cors"
 import dotenv from "dotenv"
 import joi from "joi"
-import { MongoClient } from "mongodb";
+import { MongoClient ,  ObjectId} from "mongodb";
 import dayjs from "dayjs";
 
 dotenv.config();
@@ -66,8 +66,8 @@ app.post("/participants", async (req, res) => {
     console.log(e);
     mongoClient.close()
   }
-  res.sendStatus(201);
-  mongoClient.close()
+ return res.sendStatus(201);
+
 });
 
 
@@ -105,7 +105,8 @@ app.post("messages", async (req, res) => {
     if (!user) {
       res.sendStatus(422);
       return;
-    } else {
+    } 
+
       await db.collection("messages").insertOne({
         from: user.name,
         to,
@@ -113,8 +114,7 @@ app.post("messages", async (req, res) => {
         type,
         time: dayjs().format("HH:mm:ss"),
       });
-      res.sendStatus(201);
-    }
+     return res.sendStatus(201);
 
   } catch (e) {
     console.log(e)
@@ -126,7 +126,7 @@ app.get("messages", async (req, res) => {
   const user = req.headers.user
   let arrAux = []
   try {
-    const messages = await db.collection("messages").find({}).toArray()
+    const messages = await db.collection("messages").find().toArray()
     for (let i = 0; i < messages.length; i++) {
       if (messages[i].type === "private_message" && (messages[i].to === user || messages[i].from === user)) {
           arrAux.push(messages[i]);
@@ -137,15 +137,57 @@ app.get("messages", async (req, res) => {
     }
     if (!limit) {
      return res.send(arrAux)
-    } else {
+    }
+
       let reverseMessages = [...arrAux].reverse()
       let limitMessages = reverseMessages.splice(0, limit)
       res.send(limitMessages)
-    }
+    
   } catch (e) {
     console.log(e)
   }
 
+})
+
+app.status("/status" , async (req,res)=>{
+   const { user } = req.headers
+   try{
+    const findUser = await db.collection("participants").findOne({ user });
+    if(!findUser){
+      return res.sendStatus(404)
+    }
+    await db.collection("participants").updateOne({ name: user },
+     { $set: { lastStatus: Date.now() } });
+     res.sendStatus(200);
+     return;
+   }catch(e){
+    res.send(422).send("desculpe" , e);
+    mongoClient.close();
+  }
+ 
+ 
+  async function VerifyLastStatus(){
+   try{
+        const arrParticipants = await db.collection("participants").find({}).toArray()
+        for(let i =0; i < arrParticipants.length; i++ ){
+          if(arrParticipants[i].lastStatus > 10000){
+            await db.collection('participants').deleteOne({ _id: new ObjectId(participants[i]._id) });
+            messagesArray.insertOne(
+              {
+                from: participanteInativo.name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: dayjs().format("HH:mm:ss")
+              }
+            )
+          }
+        }
+      }catch(e){console.log(e)}
+  }
+
+  setInterval(VerifyLastStatus,15000)
+    
 })
 
 
