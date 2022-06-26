@@ -1,9 +1,10 @@
-import express , {json} from "express";
+import express, { json } from "express";
 import cors from "cors"
 import dotenv from "dotenv"
 import joi from "joi"
-import { MongoClient ,  ObjectId} from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dayjs from "dayjs";
+import { stripHtml } from "string-strip-html";
 
 dotenv.config();
 const app = express()
@@ -25,8 +26,9 @@ promise.catch(res => console.log(chalk.red("deu xabu"), res))
 app.post("/participants", async (req, res) => {
   const { name } = req.body;
 
+
   const schemaNameValidate = joi.object({
-    name: joi.string().required(),
+    name: joi.string().alphanum().min(1).required(),
   });
 
   const validateName = schemaNameValidate.validate({ name });
@@ -66,7 +68,8 @@ app.post("/participants", async (req, res) => {
     console.log(e);
     mongoClient.close()
   }
- return res.sendStatus(201);
+  res.sendStatus(201);
+  return;
 
 });
 
@@ -105,16 +108,17 @@ app.post("messages", async (req, res) => {
     if (!user) {
       res.sendStatus(422);
       return;
-    } 
+    }
 
-      await db.collection("messages").insertOne({
-        from: user.name,
-        to,
-        text,
-        type,
-        time: dayjs().format("HH:mm:ss"),
-      });
-     return res.sendStatus(201);
+    await db.collection("messages").insertOne({
+      from: user.name,
+      to,
+      text,
+      type,
+      time: dayjs().format("HH:mm:ss"),
+    });
+    res.sendStatus(201);
+    return;
 
   } catch (e) {
     console.log(e)
@@ -129,68 +133,131 @@ app.get("messages", async (req, res) => {
     const messages = await db.collection("messages").find().toArray()
     for (let i = 0; i < messages.length; i++) {
       if (messages[i].type === "private_message" && (messages[i].to === user || messages[i].from === user)) {
-          arrAux.push(messages[i]);
+        arrAux.push(messages[i]);
       }
       if (messages[i].type === "message" || messages[i].type === "status") {
-          arrAux.push(messages[i]);
+        arrAux.push(messages[i]);
       }
     }
     if (!limit) {
-     return res.send(arrAux)
+      return res.send(arrAux)
     }
 
-      let reverseMessages = [...arrAux].reverse()
-      let limitMessages = reverseMessages.splice(0, limit)
-      res.send(limitMessages)
-    
+    let reverseMessages = [...arrAux].reverse()
+    let limitMessages = reverseMessages.splice(0, limit)
+    res.send(limitMessages)
+
   } catch (e) {
     console.log(e)
   }
 
 })
 
-app.status("/status" , async (req,res)=>{
-   const { user } = req.headers
-   try{
+app.status("/status", async (req, res) => {
+  const user = req.headers.user
+  try {
     const findUser = await db.collection("participants").findOne({ user });
-    if(!findUser){
-      return res.sendStatus(404)
+    if (!findUser) {
+      res.sendStatus(404)
+      return
     }
     await db.collection("participants").updateOne({ name: user },
-     { $set: { lastStatus: Date.now() } });
-     res.sendStatus(200);
-     return;
-   }catch(e){
-    res.send(422).send("desculpe" , e);
+      { $set: { lastStatus: Date.now() } });
+    res.sendStatus(200);
+    return;
+  } catch (e) {
+    res.send(422).send("desculpe", e);
     mongoClient.close();
   }
- 
- 
-  async function VerifyLastStatus(){
-   try{
-        const arrParticipants = await db.collection("participants").find({}).toArray()
-        for(let i =0; i < arrParticipants.length; i++ ){
-          if(arrParticipants[i].lastStatus > 10000){
-            await db.collection('participants').deleteOne({ _id: new ObjectId(participants[i]._id) });
-            messagesArray.insertOne(
-              {
-                from: arrParticipants[i].name,
-                to: 'Todos',
-                text: 'sai da sala...',
-                type: 'status',
-                time: dayjs().format("HH:mm:ss")
-              }
-            )
+
+
+  async function VerifyLastStatus() {
+    try {
+      const arrParticipants = await db.collection("participants").find({}).toArray()
+      for (let i = 0; i < arrParticipants.length; i++) {
+        if (arrParticipants[i].lastStatus > 10000) {
+          await db.collection('participants').deleteOne({ _id: new ObjectId(participants[i]._id) });
+          messagesArray.insertOne(
+            {
+              from: arrParticipants[i].name,
+              to: 'Todos',
+              text: 'sai da sala...',
+              type: 'status',
+              time: dayjs().format("HH:mm:ss")
+            }
+          )
+        }
+      }
+    } catch (e) { console.log(e) }
+  }
+  setInterval(VerifyLastStatus, 15000)
+
+  app.delete("/messages/:id", async (req, res) => {
+    const user = req.headers.user
+    const { id } = req.params
+    try {
+      const messageId = await db.collection("messages").findOne({ _id: new ObjectId(id) })
+      if (!messageId) {
+        res.sendStatus(404)
+        return
+      }
+      if (user !== messageId.from) {
+        res.sendStatus(401);
+        return;
+      }
+      await db.collection("messages").deleteOne({ _id: new ObjectId(id) });
+    } catch (e) { }
+
+  })
+
+  app.put("/messages/:id", async (req, res) => {
+    const { to, type, text } = req.body
+    const user = req.headers.user
+    const { id } = req.params
+
+    const schemaMessage = joi.object({
+      to: joi.string().required(),
+      text: joi.string().required(),
+      type: joi.string().allow('message', 'private_message'),
+    })
+    const validateMessage = schemaMessage.validate({ to, type, text }, { abortEarly: false });
+    if (validateMessage.error) {
+      res.sendStatus(422);
+      return;
+    }
+    try {
+      const findUser = await db.collection("participants").findOne({ name: user })
+      if (!findUser) {
+        res.sendStatus(422);
+        return;
+      }
+      const messageId = await db.collection("messages").findOne({ _id: new ObjectId(id) })
+      if (user !== messageId.from) {
+        res.sendStatus(401);
+        return;
+      }
+      if (!messageId) {
+        res.sendStatus(404)
+        return;
+      }
+      await db.collection("messages").updateOne(
+        { _id: messageId._id, },
+        {
+          $set: {
+            from,
+            to,
+            type,
+            text,
+            time: dayjs().format("HH:mm:ss")
           }
         }
-      }catch(e){console.log(e)}
-  }
+      )
 
-  setInterval(VerifyLastStatus,15000)
-    
+    } catch (e) { console.log(e) }
+  })
 })
 
 
-app.listen(5000 , ()=>{
-    console.log("wake")
+app.listen(5000, () => {
+  console.log("wake")
 })
