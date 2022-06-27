@@ -77,10 +77,10 @@ app.post("/participants", async (req, res) => {
 app.get("/participants", async (req, res) => {
   try {
     const allParticipant = db.collection("participants").find().toArray()
-    res.status(200).send(allParticipant);
+    res.send(allParticipant);
     mongoClient.close();
   } catch (error) {
-    res.send(404).send("desculpe, mas não conseguimos achar o participante");
+    res.send(404);
     mongoClient.close();
   }
 
