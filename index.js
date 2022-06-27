@@ -97,9 +97,9 @@ app.post("messages", async (req, res) => {
 
   const validateMessage = schemaMessage.validate({ to, type, text }, { abortEarly: false });
   if (!validateMessage) {
-    return res.send(422);
+     res.send(422);
   } else {
-    sendStatus(422).send("xabu", error)
+    res.sendStatus(422).send("xabu", error)
   }
 
   try {
@@ -170,27 +170,6 @@ app.status("/status", async (req, res) => {
   }
 
 
-  async function VerifyLastStatus() {
-    try {
-      const arrParticipants = await db.collection("participants").find().toArray()
-      for (let i = 0; i < arrParticipants.length; i++) {
-        if (arrParticipants[i].lastStatus > 10000) {
-          await db.collection('participants').deleteOne({ _id: new ObjectId(participants[i]._id) });
-          messagesArray.insertOne(
-            {
-              from: arrParticipants[i].name,
-              to: 'Todos',
-              text: 'sai da sala...',
-              type: 'status',
-              time: dayjs().format("HH:mm:ss")
-            }
-          )
-        }
-      }
-    } catch (e) { console.log(e) }
-  }
-  setInterval(VerifyLastStatus, 15000)
-
   app.delete("/messages/:id", async (req, res) => {
     const user = req.headers.user
     const { id } = req.params
@@ -256,6 +235,26 @@ app.status("/status", async (req, res) => {
   })
 })
 
+async function VerifyLastStatus() {
+  try {
+    const arrParticipants = await db.collection("participants").find().toArray()
+    for (let i = 0; i < arrParticipants.length; i++) {
+      if (arrParticipants[i].lastStatus > 10000) {
+        await db.collection('participants').deleteOne({ _id: new ObjectId(participants[i]._id) });
+        messagesArray.insertOne(
+          {
+            from: arrParticipants[i].name,
+            to: 'Todos',
+            text: 'sai da sala...',
+            type: 'status',
+            time: dayjs().format("HH:mm:ss")
+          }
+        )
+      }
+    }
+  } catch (e) { console.log(e) }
+}
+setInterval(VerifyLastStatus, 15000)
 
 app.listen(5000, () => {
   console.log("wake")
