@@ -80,7 +80,7 @@ app.get("/participants", async (req, res) => {
     res.send(allParticipant);
     mongoClient.close();
   } catch (error) {
-    res.send(404);
+    res.sendStatus(404);
     mongoClient.close();
   }
 
